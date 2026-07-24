@@ -1,0 +1,278 @@
+/* Admin form inputs visible borders and better focus */
+:root {
+  --zinda-input-border: #374151; /* slate-700 */
+  --zinda-input-bg: #111827;     /* gray-900 */
+  --zinda-input-text: #e5e7eb;   /* gray-200 */
+  --zinda-input-focus: #60a5fa;  /* sky-400 */
+  --zinda-accent: #8b5cf6;      /* violet-500 */
+  --zinda-success: #10b981;     /* emerald-500 */
+  --zinda-danger: #ef4444;      /* red-500 */
+  --zinda-warning: #f59e0b;     /* amber-500 */
+  --zinda-sidebar-bg: #0f172a;  /* slate-900 */
+  --zinda-sidebar-panel: rgba(255, 255, 255, 0.04);
+  --zinda-sidebar-heading: #94a3b8; /* slate-400 */
+  --zinda-sidebar-item: #cbd5f5; /* custom light */
+  --zinda-sidebar-active-bg: rgba(139, 92, 246, 0.18);
+  --zinda-sidebar-hover-bg: rgba(148, 163, 184, 0.16);
+}
+
+/* Target common fields in Django + Unfold */
+
+/* High-specificity selectors to override Unfold/Tailwind defaults */
+/* Generic: all inputs except checkbox/radio inside Unfold content */
+body .unfold-main input:not([type="checkbox"]):not([type="radio"]),
+body .unfold-main .vTextField,
+body .unfold-main textarea,
+body .unfold-main select,
+/* Common wrappers Unfold uses for inputs */
+body .unfold-main .relative input:not([type="checkbox"]):not([type="radio"]),
+body .unfold-main .relative textarea,
+body .unfold-main .relative select,
+/* Fallbacks for places outside .unfold-main (older blocks) */
+body input[type="text"],
+body input[type="email"],
+body input[type="url"],
+body input[type="search"],
+body input[type="tel"],
+body input[type="number"],
+body input[type="password"],
+body .vTextField,
+body textarea,
+body select {
+  border: 1px solid var(--zinda-input-border) !important;
+  background-color: var(--zinda-input-bg) !important;
+  color: var(--zinda-input-text) !important;
+  border-radius: 6px !important;
+  padding: 8px 10px !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+body .unfold-main input:not([type="checkbox"]):not([type="radio"]):focus,
+body .unfold-main .vTextField:focus,
+body .unfold-main textarea:focus,
+body .unfold-main select:focus,
+body .unfold-main .relative input:not([type="checkbox"]):not([type="radio"]):focus,
+body .unfold-main .relative textarea:focus,
+body .unfold-main .relative select:focus,
+body input[type="text"]:focus,
+body input[type="email"]:focus,
+body input[type="url"]:focus,
+body input[type="search"]:focus,
+body input[type="tel"]:focus,
+body input[type="number"]:focus,
+body input[type="password"]:focus,
+body .vTextField:focus,
+body textarea:focus,
+body select:focus {
+  border-color: var(--zinda-input-focus) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--zinda-input-focus) 40%, transparent) !important;
+}
+
+/* Make disabled/read-only states still visible */
+.unfold-main input[disabled],
+.unfold-main textarea[disabled],
+.unfold-main select[disabled],
+body input[disabled],
+body textarea[disabled],
+body select[disabled] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Foreign Key Action Icons Styling */
+.related-widget-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.related-widget-wrapper select,
+.related-widget-wrapper input {
+  flex: 1;
+}
+
+/* Style the action links */
+.related-widget-wrapper a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  border: 1px solid transparent;
+}
+
+/* Edit (pencil) - Warning color */
+.related-widget-wrapper a.related-widget-wrapper-change-link {
+  background-color: color-mix(in srgb, var(--zinda-warning) 20%, transparent);
+  color: var(--zinda-warning);
+  border-color: color-mix(in srgb, var(--zinda-warning) 30%, transparent);
+}
+
+.related-widget-wrapper a.related-widget-wrapper-change-link:hover {
+  background-color: color-mix(in srgb, var(--zinda-warning) 30%, transparent);
+  border-color: var(--zinda-warning);
+}
+
+/* Add (plus) - Success color */
+.related-widget-wrapper a.related-widget-wrapper-add-link {
+  background-color: color-mix(in srgb, var(--zinda-success) 20%, transparent);
+  color: var(--zinda-success);
+  border-color: color-mix(in srgb, var(--zinda-success) 30%, transparent);
+}
+
+.related-widget-wrapper a.related-widget-wrapper-add-link:hover {
+  background-color: color-mix(in srgb, var(--zinda-success) 30%, transparent);
+  border-color: var(--zinda-success);
+}
+
+/* Delete/Clear (X) - Danger color */
+.related-widget-wrapper a.related-widget-wrapper-delete-link {
+  background-color: color-mix(in srgb, var(--zinda-danger) 20%, transparent);
+  color: var(--zinda-danger);
+  border-color: color-mix(in srgb, var(--zinda-danger) 30%, transparent);
+}
+
+.related-widget-wrapper a.related-widget-wrapper-delete-link:hover {
+  background-color: color-mix(in srgb, var(--zinda-danger) 30%, transparent);
+  border-color: var(--zinda-danger);
+}
+
+/* View (eye) - Accent color */
+.related-widget-wrapper a.related-widget-wrapper-view-link {
+  background-color: color-mix(in srgb, var(--zinda-accent) 20%, transparent);
+  color: var(--zinda-accent);
+  border-color: color-mix(in srgb, var(--zinda-accent) 30%, transparent);
+}
+
+.related-widget-wrapper a.related-widget-wrapper-view-link:hover {
+  background-color: color-mix(in srgb, var(--zinda-accent) 30%, transparent);
+  border-color: var(--zinda-accent);
+}
+
+/* Replace default icons with better Unicode symbols */
+.related-widget-wrapper a::before {
+  content: '';
+  display: inline-block;
+}
+
+.related-widget-wrapper a.related-widget-wrapper-change-link::before {
+  content: '✏️';
+}
+
+.related-widget-wrapper a.related-widget-wrapper-add-link::before {
+  content: '➕';
+}
+
+.related-widget-wrapper a.related-widget-wrapper-delete-link::before {
+  content: '🗑️';
+}
+
+.related-widget-wrapper a.related-widget-wrapper-view-link::before {
+  content: '👁️';
+}
+
+/* Hide the default text content */
+.related-widget-wrapper a {
+  font-size: 0;
+}
+
+.related-widget-wrapper a::before {
+  font-size: 16px;
+}
+
+/* Form field spacing improvements */
+.form-row {
+  margin-bottom: 20px;
+}
+
+.form-row label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: var(--zinda-input-text);
+}
+
+/* Fieldset styling */
+.unfold-main fieldset {
+  border: 1px solid var(--zinda-input-border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background-color: color-mix(in srgb, var(--zinda-input-bg) 50%, transparent);
+}
+
+.unfold-main fieldset legend {
+  padding: 0 8px;
+  font-weight: 600;
+  color: var(--zinda-accent);
+}
+
+/* Submit button styling */
+.submit-row {
+  padding: 16px 0;
+  border-top: 1px solid var(--zinda-input-border);
+  margin-top: 24px;
+}
+
+.submit-row input[type="submit"] {
+  background-color: var(--zinda-accent);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.submit-row input[type="submit"]:hover {
+  background-color: color-mix(in srgb, var(--zinda-accent) 90%, black);
+}
+
+/* ===================== */
+/* File input (Choose File) */
+/* ===================== */
+/* Modern browsers */
+body .unfold-main input[type="file"]::file-selector-button,
+body input[type="file"]::file-selector-button {
+  background-color: var(--zinda-accent) !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  margin-right: 10px !important;
+  cursor: pointer !important;
+}
+
+body .unfold-main input[type="file"]:hover::file-selector-button,
+body input[type="file"]:hover::file-selector-button {
+  background-color: color-mix(in srgb, var(--zinda-accent) 90%, black) !important;
+}
+
+/* WebKit fallback */
+body .unfold-main input[type="file"]::-webkit-file-upload-button,
+body input[type="file"]::-webkit-file-upload-button {
+  background-color: var(--zinda-accent) !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  margin-right: 10px !important;
+  cursor: pointer !important;
+}
+
+body .unfold-main input[type="file"]:hover::-webkit-file-upload-button,
+body input[type="file"]:hover::-webkit-file-upload-button {
+  background-color: color-mix(in srgb, var(--zinda-accent) 90%, black) !important;
+}
+
+/* Filename text color so it's readable on dark bg */
+body .unfold-main input[type="file"],
+body input[type="file"] {
+  color: var(--zinda-input-text) !important;
+}

@@ -1,0 +1,8 @@
+{% extends "unfold/layout.html" %}
+
+{% load static %}
+
+{% block head %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'branding/admin-overrides.css' %}">
+{% endblock %}

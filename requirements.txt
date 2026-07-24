@@ -1,0 +1,9 @@
+Django>=5.0,<6.0
+django-unfold>=0.30
+django-environ>=0.12
+PyMySQL>=1.1
+Pillow>=10
+cryptography>=42
+djangorestframework>=3.15
+razorpay>=1.4.2
+django-autocomplete-light
