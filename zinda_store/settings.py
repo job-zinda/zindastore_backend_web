@@ -28,9 +28,9 @@ env = environ.Env(
     RAZORPAY_KEY_ID=(str, ''),
     RAZORPAY_KEY_SECRET=(str, ''),
     RAZORPAY_WEBHOOK_SECRET=(str, ''),
-    JORA_API_KEY=(str, ''), # ITHU ADD CHEYYU
-    JORA_BASE_URL=(str, 'https://server2.jobzinda.com/api/v1'), # ITHU KODI
-    FRONTEND_URL=(str, 'http://localhost:5173'), # React/Vite url
+    JORA_API_KEY=(str, ''), 
+    JORA_BASE_URL=(str, 'https://server2.jobzinda.com/api/v1'), 
+    FRONTEND_URL=(str, 'http://localhost:5173'),
 )
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
@@ -68,9 +68,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', # CORS should be top
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # ADD THIS for static files in production
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -121,7 +121,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Kolkata' # CHANGED to IST
+TIME_ZONE = 'Asia/Kolkata' 
 USE_I18N = True
 USE_TZ = True
 
@@ -129,7 +129,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage' # ADD for prod
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -137,11 +137,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS SETTINGS - IMPORTANT
-CORS_ALLOW_ALL_ORIGINS = False # PROD IL TRUE VENDANAM
+CORS_ALLOW_ALL_ORIGINS = False 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173", # Vite/React
-    "http://localhost:3000", # NextJS
-    env('FRONTEND_URL'), # .env ninnu
+    "http://localhost:5173", 
+    "http://localhost:3000", 
+    env('FRONTEND_URL'), 
 ]
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
@@ -155,7 +155,7 @@ RAZORPAY_WEBHOOK_SECRET = env('RAZORPAY_WEBHOOK_SECRET')
 
 # JobzInda Config
 JORA_BASE_URL = env('JORA_BASE_URL')
-JORA_API_KEY = env('JORA_API_KEY') # ITHU ILLATHATHU KONDU ANU ERROR VARUNNATHU
+JORA_API_KEY = env('JORA_API_KEY') 
 
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ('rest_framework.renderers.JSONRenderer',),
@@ -164,9 +164,11 @@ REST_FRAMEWORK = {
 
 # Security for Production
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+   SECURE_SSL_REDIRECT = False
+   SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+   USE_X_FORWARDED_HOST = True
+   SESSION_COOKIE_SECURE = True
+   CSRF_COOKIE_SECURE = True
 
 
 UNFOLD = {
