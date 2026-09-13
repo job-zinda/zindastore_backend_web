@@ -3,14 +3,12 @@ from django.utils import timezone
 from catalog.models import Product, ProductVariant
 from cart.models import Cart
 
-
 class TimeStampedModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True) # IVIDE auto_now aayirikkam, auto_now_add alla
 
     class Meta:
         abstract = True
-
 
 class Order(TimeStampedModel):
     STATUS_PENDING = "pending"
@@ -48,6 +46,7 @@ class Order(TimeStampedModel):
     tax_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     shipping_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    commission_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) 
     currency = models.CharField(max_length=3, default="INR")
 
     # Guest customer snapshot
@@ -63,13 +62,13 @@ class Order(TimeStampedModel):
     paid_at = models.DateTimeField(null=True, blank=True)
 
     cart = models.ForeignKey(Cart, on_delete=models.SET_NULL, null=True, blank=True)
-    # Referral info
-    referral_code = models.CharField(max_length=40, blank=True)
+
+    # Referral info - promoter field remove cheythu
+    referral_code = models.CharField(max_length=40, blank=True, null=True)
     referral_credited = models.BooleanField(default=False)
 
     def __str__(self):
         return self.order_number
-
 
 class OrderItem(TimeStampedModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
@@ -85,7 +84,6 @@ class OrderItem(TimeStampedModel):
     def __str__(self):
         return f"{self.order.order_number} - {self.sku_snapshot}"
 
-
 class Invoice(TimeStampedModel):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="invoice")
     invoice_number = models.CharField(max_length=20, unique=True)
@@ -94,5 +92,3 @@ class Invoice(TimeStampedModel):
 
     def __str__(self):
         return self.invoice_number
-
-# Create your models here.

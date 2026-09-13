@@ -1,100 +1,9 @@
 from rest_framework import serializers
 from catalog.models import Brand, Category, Product, ProductVariant, ProductImage, Course, Service
 from cart.models import Cart, CartItem
+from orders.models import Order, OrderItem
 from reviews.models import Review
 
-class CourseListSerializer(serializers.ModelSerializer):
-    thumbnail = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Course
-        fields = [
-            "id",
-            "title",
-            "slug",
-            "author",
-            "thumbnail",
-            "sale_price",
-            "mrp_price",
-            "referral_commission",
-        ]
-
-    def get_thumbnail(self, obj):
-        if getattr(obj.thumbnail, "url", None):
-            return obj.thumbnail.url
-        return ""
-
-
-class CourseDetailSerializer(serializers.ModelSerializer):
-    thumbnail = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Course
-        fields = [
-            "id",
-            "title",
-            "slug",
-            "author",
-            "description",
-            "thumbnail",
-            "sale_price",
-            "mrp_price",
-            "whatsapp_number",
-            "whatsapp_message",
-            "referral_commission",
-        ]
-
-    def get_thumbnail(self, obj):
-        if getattr(obj.thumbnail, "url", None):
-            return obj.thumbnail.url
-        return ""
-
- 
-
-
-class ServiceListSerializer(serializers.ModelSerializer):
-    thumbnail = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Service
-        fields = [
-            "id",
-            "title",
-            "slug",
-            "summary",
-            "thumbnail",
-            "base_price",
-            "referral_commission",
-        ]
-
-    def get_thumbnail(self, obj):
-        if getattr(obj.thumbnail, "url", None):
-            return obj.thumbnail.url
-        return ""
-
-
-class ServiceDetailSerializer(serializers.ModelSerializer):
-    thumbnail = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Service
-        fields = [
-            "id",
-            "title",
-            "slug",
-            "summary",
-            "description",
-            "thumbnail",
-            "base_price",
-            "whatsapp_number",
-            "whatsapp_message",
-            "referral_commission",
-        ]
-
-    def get_thumbnail(self, obj):
-        if getattr(obj.thumbnail, "url", None):
-            return obj.thumbnail.url
-        return ""
 
 class BrandSerializer(serializers.ModelSerializer):
     class Meta:
@@ -154,26 +63,18 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
 
     def get_thumbnail(self, obj):
-        # Requires prefetch of images in the view for efficiency
         first_image = next(iter(obj.images.all()), None)
         if first_image and getattr(first_image.image, "url", None):
             return first_image.image.url
         return ""
 
     def get_sale_price(self, obj):
-        # Choose the minimum sale_price among active variants if available
         prices = [v.sale_price for v in obj.variants.all() if getattr(v, "sale_price", None) is not None]
-        if prices:
-            # DRF will serialize Decimal, but return as str for consistency
-            return str(min(prices))
-        return None
+        return str(min(prices)) if prices else None
 
     def get_mrp_price(self, obj):
-        # Choose the minimum mrp_price among variants if available
         prices = [v.mrp_price for v in obj.variants.all() if getattr(v, "mrp_price", None) is not None]
-        if prices:
-            return str(min(prices))
-        return None
+        return str(min(prices)) if prices else None
 
 
 class ProductDetailSerializer(serializers.ModelSerializer):
@@ -201,6 +102,59 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         ]
 
 
+class CourseListSerializer(serializers.ModelSerializer):
+    thumbnail = serializers.SerializerMethodField()
+    category = serializers.SlugRelatedField(slug_field="name", read_only=True)
+    class Meta:
+        model = Course
+        fields = '__all__'
+
+    def get_thumbnail(self, obj):
+        if getattr(obj.thumbnail, "url", None):
+            return obj.thumbnail.url
+        return ""
+
+
+class CourseDetailSerializer(serializers.ModelSerializer):
+    thumbnail = serializers.SerializerMethodField()
+    category = serializers.SlugRelatedField(slug_field="name", read_only=True)
+    class Meta:
+        model = Course
+        fields = '__all__'
+
+    def get_thumbnail(self, obj):
+        if getattr(obj.thumbnail, "url", None):
+            return obj.thumbnail.url
+        return ""
+
+
+class ServiceListSerializer(serializers.ModelSerializer):
+    thumbnail = serializers.SerializerMethodField()
+    category = serializers.SlugRelatedField(slug_field="name", read_only=True)
+    class Meta:
+        model = Service
+        fields = '__all__'
+
+    def get_thumbnail(self, obj):
+        if getattr(obj.thumbnail, "url", None):
+            return obj.thumbnail.url
+        return ""
+
+
+class ServiceDetailSerializer(serializers.ModelSerializer):
+    thumbnail = serializers.SerializerMethodField()
+    category = serializers.SlugRelatedField(slug_field="name", read_only=True)
+    class Meta:
+        model = Service
+        fields = '__all__'
+
+    def get_thumbnail(self, obj):
+        if getattr(obj.thumbnail, "url", None):
+            return obj.thumbnail.url
+        return ""
+
+# --- Cart Serializers ---
+
 class CartItemSerializer(serializers.ModelSerializer):
     variant_sku = serializers.CharField(source="variant.sku", read_only=True)
     product_title = serializers.CharField(source="variant.product.title", read_only=True)
@@ -219,7 +173,6 @@ class CartItemSerializer(serializers.ModelSerializer):
         ]
 
     def get_thumbnail(self, obj):
-        # Prefer variant image first, then product image
         try:
             v_images = getattr(obj.variant, "images", None)
             if v_images is not None:
@@ -255,6 +208,7 @@ class CartAddItemSerializer(serializers.Serializer):
 class CartItemUpdateSerializer(serializers.Serializer):
     quantity = serializers.IntegerField(min_value=1)
 
+# --- Checkout & Request Serializers ---
 
 class AddressSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=140)
@@ -300,6 +254,7 @@ class ServiceCheckoutRequestSerializer(serializers.Serializer):
     customer_phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
     coupon_code = serializers.CharField(max_length=40, required=False, allow_blank=True)
 
+# --- Review Serializers ---
 
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
@@ -319,3 +274,56 @@ class ReviewCreateSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=140, required=False, allow_blank=True)
     body = serializers.CharField(required=False, allow_blank=True)
     name_or_email = serializers.CharField(max_length=140, required=False, allow_blank=True)
+    
+class OrderItemSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="title_snapshot")
+    type = serializers.SerializerMethodField() # product / course / service
+    price = serializers.DecimalField(source="unit_price_snapshot", max_digits=12, decimal_places=2)
+    total = serializers.DecimalField(source="total_price_snapshot", max_digits=12, decimal_places=2)
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            "id", 
+            "name", 
+            "type", 
+            "sku_snapshot", 
+            "quantity", 
+            "price", 
+            "total"
+        ]
+
+    def get_type(self, obj):
+        if obj.product:
+            return "product"
+        if obj.course:
+            return "course"
+        if obj.service:
+            return "service"
+        return "other"
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    total_amount = serializers.DecimalField(source="grand_total", max_digits=12, decimal_places=2)
+    created_at = serializers.DateTimeField(source="placed_at")
+    customer_name = serializers.CharField()
+    customer_email = serializers.EmailField()
+    customer_phone = serializers.CharField()
+
+    class Meta:
+        model = Order
+        fields = [
+            "id", 
+            "order_number", 
+            "status", 
+            "payment_status",
+            "created_at", 
+            "total_amount",
+            "currency",
+            "customer_name",
+            "customer_email",
+            "customer_phone",
+            "items",
+        ]
+
+
