@@ -138,12 +138,29 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS SETTINGS - IMPORTANT
 CORS_ALLOW_ALL_ORIGINS = False 
+
+FRONTEND_URL = env('FRONTEND_URL')
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173", 
-    "http://localhost:3000", 
-    env('FRONTEND_URL'), 
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    FRONTEND_URL,
+    "https://zindastore-frontend-web.vercel.app",  
 ]
-CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+
+extra_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if extra_origins:
+    for origin in extra_origins.split(","):
+        origin = origin.strip()
+        if origin and origin not in CORS_ALLOWED_ORIGINS:
+            CORS_ALLOWED_ORIGINS.append(origin)
+
+CORS_ALLOWED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS if o]
+
+CSRF_TRUSTED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS if o.startswith("http")]
+
+CORS_ALLOW_CREDENTIALS = True
 
 # Currency configuration
 DEFAULT_CURRENCY = 'INR'
