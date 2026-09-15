@@ -2,11 +2,9 @@
 Django settings for zinda_store project.
 """
 from pathlib import Path
-from decouple import config
 import os
 import environ
 
-# Ensure PyMySQL is used as MySQLdb for Django's MySQL backend
 try:
     import pymysql
     pymysql.install_as_MySQLdb()
@@ -15,9 +13,8 @@ except Exception:
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Environment variables
 env = environ.Env(
-    DEBUG=(bool, True),
+    DEBUG=(bool, False),
     SECRET_KEY=(str, 'django-insecure-placeholder'),
     ALLOWED_HOSTS=(list, []),
     DB_NAME=(str, 'zinda_store_db'),
@@ -37,10 +34,21 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
-# PRODUCTION IL ITHU MAATTU
-ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+# ===== ALLOWED_HOSTS - 100% FIX =====
+_raw = os.getenv("ALLOWED_HOSTS", "")
+if _raw:
+    _raw = _raw.replace("\n", ",").replace("\r", ",").replace("https://", "").replace("http://", "").replace("/", "")
+    ALLOWED_HOSTS = [h.strip() for h in _raw.split(",") if h.strip()]
+else:
+    ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+
 if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.vercel.app', '.railway.app', '.pythonanywhere.com'] # nee host cheyyunna domain
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.vercel.app', '.railway.app', '.up.railway.app']
+
+# Railway domains must always be allowed
+for domain in ["zindastore-backend-web-production.up.railway.app", "zindastorebackendweb-production.up.railway.app"]:
+    if domain not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(domain)
 
 INSTALLED_APPS = [
     'dal',
@@ -125,52 +133,43 @@ TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS SETTINGS - IMPORTANT
-CORS_ALLOW_ALL_ORIGINS = False 
-
+# CORS - FIXED
 FRONTEND_URL = env('FRONTEND_URL')
 
+CORS_ALLOW_ALL_ORIGINS = False 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173", 
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     FRONTEND_URL,
-    "https://zindastore-frontend-web.vercel.app",  
+    "https://zindastore-frontend-web.vercel.app",
 ]
 
-extra_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
-if extra_origins:
-    for origin in extra_origins.split(","):
-        origin = origin.strip()
-        if origin and origin not in CORS_ALLOWED_ORIGINS:
-            CORS_ALLOWED_ORIGINS.append(origin)
+# Add extra from env
+_extra = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if _extra:
+    for o in _extra.split(","):
+        o = o.strip()
+        if o and o not in CORS_ALLOWED_ORIGINS:
+            CORS_ALLOWED_ORIGINS.append(o)
 
 CORS_ALLOWED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS if o]
-
 CSRF_TRUSTED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS if o.startswith("http")]
-
 CORS_ALLOW_CREDENTIALS = True
 
-# Currency configuration
 DEFAULT_CURRENCY = 'INR'
-
-# Razorpay configuration
 RAZORPAY_KEY_ID = env('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET = env('RAZORPAY_KEY_SECRET')
 RAZORPAY_WEBHOOK_SECRET = env('RAZORPAY_WEBHOOK_SECRET')
-
-# JobzInda Config
 JORA_BASE_URL = env('JORA_BASE_URL')
 JORA_API_KEY = env('JORA_API_KEY') 
 
@@ -179,7 +178,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': ('rest_framework.parsers.JSONParser',),
 }
 
-# Security for Production
 if not DEBUG:
    SECURE_SSL_REDIRECT = False
    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -187,219 +185,27 @@ if not DEBUG:
    SESSION_COOKIE_SECURE = True
    CSRF_COOKIE_SECURE = True
 
-
 UNFOLD = {
     'SITE_TITLE': 'Zinda Store Admin',
     'SITE_HEADER': 'Zinda Store',
     "SITE_LOGO": "/static/branding/logo.png",
-    # Load custom CSS to tweak input borders/appearance
-    "STYLES": [
-        "/static/branding/admin-overrides.css",
-    ],
+    "STYLES": ["/static/branding/admin-overrides.css",],
     "SIDEBAR": {
         "show_search": True,
         "navigation": [
-            {
-                "title": "Dashboard",
-                "items": [
-                    {
-                        "title": "Overview",
-                        "icon": "space_dashboard",
-                        "link": "/admin/",
-                    },
-                ],
-            },
-            {
-                "title": "Authentication & Authorization",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Groups",
-                        "icon": "group",
-                        "link": "/admin/auth/group/",
-                    },
-                    {
-                        "title": "Users",
-                        "icon": "person",
-                        "link": "/admin/auth/user/",
-                    },
-                ],
-            },
-            {
-                "title": "Catalog",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Brands",
-                        "icon": "store",
-                        "link": "/admin/catalog/brand/",
-                    },
-                    {
-                        "title": "Categories",
-                        "icon": "category",
-                        "link": "/admin/catalog/category/",
-                    },
-                    {
-                        "title": "Product images",
-                        "icon": "photo_library",
-                        "link": "/admin/catalog/productimage/",
-                    },
-                    {
-                        "title": "Product variants",
-                        "icon": "widgets",
-                        "link": "/admin/catalog/productvariant/",
-                    },
-                    {
-                        "title": "Products",
-                        "icon": "inventory_2",
-                        "link": "/admin/catalog/product/",
-                    },
-                ],
-            },
-            {
-                "title": "CMS",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Banners",
-                        "icon": "collections_bookmark",
-                        "link": "/admin/cms/banner/",
-                    },
-                    {
-                        "title": "Pages",
-                        "icon": "description",
-                        "link": "/admin/cms/page/",
-                    },
-                ],
-            },
-            {
-                "title": "Inventory",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Warehouses",
-                        "icon": "warehouse",
-                        "link": "/admin/inventory/warehouse/",
-                    },
-                    {
-                        "title": "Inventory items",
-                        "icon": "inventory",
-                        "link": "/admin/inventory/inventoryitem/",
-                    },
-                    {
-                        "title": "Stock movements",
-                        "icon": "sync_alt",
-                        "link": "/admin/inventory/stockmovement/",
-                    },
-                ],
-            },
-            {
-                "title": "Cart",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Carts",
-                        "icon": "shopping_cart",
-                        "link": "/admin/cart/cart/",
-                    },
-                ],
-            },
-            {
-                "title": "Orders",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Orders",
-                        "icon": "receipt_long",
-                        "link": "/admin/orders/order/",
-                    },
-                    {
-                        "title": "Invoices",
-                        "icon": "request_quote",
-                        "link": "/admin/orders/invoice/",
-                    },
-                ],
-            },
-            {
-                "title": "Payments",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Payment intents",
-                        "icon": "payments",
-                        "link": "/admin/payments/paymentintent/",
-                    },
-                    {
-                        "title": "Refunds",
-                        "icon": "undo",
-                        "link": "/admin/payments/refund/",
-                    },
-                ],
-            },
-            {
-                "title": "Shipping",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Shipping methods",
-                        "icon": "local_shipping",
-                        "link": "/admin/shipping/shippingmethod/",
-                    },
-                    {
-                        "title": "Shipments",
-                        "icon": "move_up",
-                        "link": "/admin/shipping/shipment/",
-                    },
-                    {
-                        "title": "Shipment items",
-                        "icon": "inventory_2",
-                        "link": "/admin/shipping/shipmentitem/",
-                    },
-                ],
-            },
-            {
-                "title": "Promotions",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Coupons",
-                        "icon": "loyalty",
-                        "link": "/admin/promotions/coupon/",
-                    },
-                ],
-            },
-            {
-                "title": "Reviews",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Reviews",
-                        "icon": "reviews",
-                        "link": "/admin/reviews/review/",
-                    },
-                ],
-            },
-            {
-                "title": "Support",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Return requests",
-                        "icon": "support_agent",
-                        "link": "/admin/support/returnrequest/",
-                    },
-                ],
-            },
+            {"title": "Dashboard","items": [{"title": "Overview","icon": "space_dashboard","link": "/admin/",},],},
+            {"title": "Authentication & Authorization","collapsible": True,"items": [{"title": "Groups","icon": "group","link": "/admin/auth/group/",},{"title": "Users","icon": "person","link": "/admin/auth/user/",},],},
+            {"title": "Catalog","collapsible": True,"items": [{"title": "Brands","icon": "store","link": "/admin/catalog/brand/",},{"title": "Categories","icon": "category","link": "/admin/catalog/category/"},{"title": "Product images","icon": "photo_library","link": "/admin/catalog/productimage/"},{"title": "Product variants","icon": "widgets","link": "/admin/catalog/productvariant/"},{"title": "Products","icon": "inventory_2","link": "/admin/catalog/product/"},],},
+            {"title": "CMS","collapsible": True,"items": [{"title": "Banners","icon": "collections_bookmark","link": "/admin/cms/banner/"},{"title": "Pages","icon": "description","link": "/admin/cms/page/"},],},
+            {"title": "Inventory","collapsible": True,"items": [{"title": "Warehouses","icon": "warehouse","link": "/admin/inventory/warehouse/"},{"title": "Inventory items","icon": "inventory","link": "/admin/inventory/inventoryitem/"},{"title": "Stock movements","icon": "sync_alt","link": "/admin/inventory/stockmovement/"},],},
+            {"title": "Cart","collapsible": True,"items": [{"title": "Carts","icon": "shopping_cart","link": "/admin/cart/cart/"},],},
+            {"title": "Orders","collapsible": True,"items": [{"title": "Orders","icon": "receipt_long","link": "/admin/orders/order/"},{"title": "Invoices","icon": "request_quote","link": "/admin/orders/invoice/"},],},
+            {"title": "Payments","collapsible": True,"items": [{"title": "Payment intents","icon": "payments","link": "/admin/payments/paymentintent/"},{"title": "Refunds","icon": "undo","link": "/admin/payments/refund/"},],},
+            {"title": "Shipping","collapsible": True,"items": [{"title": "Shipping methods","icon": "local_shipping","link": "/admin/shipping/shippingmethod/"},{"title": "Shipments","icon": "move_up","link": "/admin/shipping/shipment/"},{"title": "Shipment items","icon": "inventory_2","link": "/admin/shipping/shipmentitem/"},],},
+            {"title": "Promotions","collapsible": True,"items": [{"title": "Coupons","icon": "loyalty","link": "/admin/promotions/coupon/"},],},
+            {"title": "Reviews","collapsible": True,"items": [{"title": "Reviews","icon": "reviews","link": "/admin/reviews/review/"},],},
+            {"title": "Support","collapsible": True,"items": [{"title": "Return requests","icon": "support_agent","link": "/admin/support/returnrequest/"},],},
         ],
     },
-
-    "LOGIN": {
-        # Shown on the login screen (logo)
-        "LOGO": "/static/branding/logo.png",
-        # Optional illustration/image on login page
-        # "IMAGE": "/static/branding/login-illustration.svg",
-        # Optional: title/intro text
-        # "TITLE": "Welcome back",
-        # "SUBTITLE": "Sign in to Zinda Store Admin",
-    },
+    "LOGIN": {"LOGO": "/static/branding/logo.png",},
 }
