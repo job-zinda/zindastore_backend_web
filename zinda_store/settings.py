@@ -34,16 +34,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
-# ===== ALLOWED_HOSTS - 100% FIX =====
-_raw = os.getenv("ALLOWED_HOSTS", "")
-if _raw:
-    _raw = _raw.replace("\n", ",").replace("\r", ",").replace("https://", "").replace("http://", "").replace("/", "")
-    ALLOWED_HOSTS = [h.strip() for h in _raw.split(",") if h.strip()]
-else:
-    ALLOWED_HOSTS = env('ALLOWED_HOSTS')
-
-if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.vercel.app', '.railway.app', '.up.railway.app']
+ALLOWED_HOSTS = ["*"]
 
 # Railway domains must always be allowed
 for domain in ["zindastore-backend-web-production.up.railway.app", "zindastorebackendweb-production.up.railway.app"]:
