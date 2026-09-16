@@ -1,5 +1,6 @@
 """
 Django settings for zinda_store project.
+FINAL FIXED FOR VERCEL + RAILWAY
 """
 from pathlib import Path
 import os
@@ -18,10 +19,10 @@ env = environ.Env(
     SECRET_KEY=(str, 'django-insecure-placeholder'),
     ALLOWED_HOSTS=(list, []),
     DB_NAME=(str, 'zinda_store_db'),
-    DB_USER=(str, 'root'),
-    DB_PASSWORD=(str, 'pass123'),
+    DB_USER=(str, 'ameer'),
+    DB_PASSWORD=(str, 'rootameer'),
     DB_HOST=(str, '127.0.0.1'),
-    DB_PORT=(int, 33306),
+    DB_PORT=(int, 3306),
     RAZORPAY_KEY_ID=(str, ''),
     RAZORPAY_KEY_SECRET=(str, ''),
     RAZORPAY_WEBHOOK_SECRET=(str, ''),
@@ -35,11 +36,6 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = ["*"]
-
-# Railway domains must always be allowed
-for domain in ["zindastore-backend-web-production.up.railway.app", "zindastorebackendweb-production.up.railway.app"]:
-    if domain not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append(domain)
 
 INSTALLED_APPS = [
     'dal',
@@ -133,30 +129,30 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS - FIXED
-FRONTEND_URL = env('FRONTEND_URL')
+# ========= CORS =========
 
-CORS_ALLOW_ALL_ORIGINS = False 
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = ["GET","POST","PUT","PATCH","DELETE","OPTIONS"]
+CORS_ALLOW_HEADERS = ["*"]
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173", 
     "http://localhost:3000",
     "http://127.0.0.1:5173",
-    FRONTEND_URL,
     "https://zindastore-frontend-web.vercel.app",
 ]
 
-# Add extra from env
-_extra = os.getenv("CORS_ALLOWED_ORIGINS", "")
-if _extra:
-    for o in _extra.split(","):
-        o = o.strip()
-        if o and o not in CORS_ALLOWED_ORIGINS:
-            CORS_ALLOWED_ORIGINS.append(o)
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "https://zindastore-frontend-web.vercel.app",
+    "https://zindastorebackendweb-production.up.railway.app",
+    "https://zindastore-backend-web-production.up.railway.app",
+]
 
-CORS_ALLOWED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS if o]
-CSRF_TRUSTED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS if o.startswith("http")]
-CORS_ALLOW_CREDENTIALS = True
-
+# ========= APP CONFIGS =========
 DEFAULT_CURRENCY = 'INR'
 RAZORPAY_KEY_ID = env('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET = env('RAZORPAY_KEY_SECRET')
