@@ -137,6 +137,8 @@ CORS_ALLOW_METHODS = ["GET","POST","PUT","PATCH","DELETE","OPTIONS"]
 CORS_ALLOW_HEADERS = ["*"]
 
 CORS_ALLOWED_ORIGINS = [
+    "https://zindastore.com",
+    "https://www.zindastore.com",
     "http://localhost:5173", 
     "http://localhost:3000",
     "http://127.0.0.1:5173",
@@ -144,6 +146,9 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    "https://zindastore.com",
+    "https://www.zindastore.com",
+    "https://api.zindastore.com",
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",

@@ -14,6 +14,7 @@ urlpatterns = [
     
     # 3. CMS Endpoints (banners, pages മുതലായവ)
     path('api/cms/', include('cms.urls')),
+    path('api/', include('cms.urls')),
 ]
 
 if settings.DEBUG:
