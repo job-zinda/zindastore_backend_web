@@ -764,7 +764,7 @@ class OrdersList(APIView):
 class ProductReviews(APIView):
     def get(self, request, slug: str):
         product = get_object_or_404(Product, slug=slug, is_active=True)
-        qs = product.reviews.filter(is_approved=True).order_by("-created_at")
+        qs = product.reviews.order_by("-created_at")
         return Response(ReviewSerializer(qs, many=True).data)
 
     def post(self, request, slug: str):
@@ -777,7 +777,7 @@ class ProductReviews(APIView):
             title=serializer.validated_data.get("title", ""),
             body=serializer.validated_data.get("body", ""),
             name_or_email=serializer.validated_data.get("name_or_email", ""),
-            is_approved=False,
+            is_approved=True, 
         )
         return Response(ReviewSerializer(r).data, status=status.HTTP_201_CREATED)
     

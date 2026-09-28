@@ -1,6 +1,6 @@
 """
 Django settings for zinda_store project.
-FINAL FIXED FOR VERCEL + RAILWAY
+FINAL FIXED FOR HOSTINGER VPS
 """
 from pathlib import Path
 import os
@@ -28,38 +28,21 @@ env = environ.Env(
     RAZORPAY_WEBHOOK_SECRET=(str, ''),
     JORA_API_KEY=(str, ''), 
     JORA_BASE_URL=(str, 'https://server2.jobzinda.com/api/v1'), 
-    FRONTEND_URL=(str, 'http://localhost:5173'),
+    FRONTEND_URL=(str, 'https://zindastore.com'),
 )
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ["*"]
+
+ALLOWED_HOSTS = env('ALLOWED_HOSTS') if env('ALLOWED_HOSTS') else ["*"]
 
 INSTALLED_APPS = [
-    'dal',
-    'dal_select2',
-    'unfold',
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'corsheaders',
-    'core',
-    'catalog',
-    'inventory',
-    'cart',
-    'orders',
-    'payments',
-    'shipping',
-    'promotions',
-    'reviews',
-    'support',
-    'cms',
+    'dal','dal_select2','unfold','django.contrib.admin','django.contrib.auth',
+    'django.contrib.contenttypes','django.contrib.sessions','django.contrib.messages',
+    'django.contrib.staticfiles','rest_framework','corsheaders',
+    'core','catalog','inventory','cart','orders','payments','shipping','promotions','reviews','support','cms',
 ]
 
 MIDDLEWARE = [
@@ -75,22 +58,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'zinda_store.urls'
-
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
 WSGI_APPLICATION = 'zinda_store.wsgi.application'
 
 DATABASES = {
@@ -101,19 +68,9 @@ DATABASES = {
         'PASSWORD': env('DB_PASSWORD'),
         'HOST': env('DB_HOST'),
         'PORT': env('DB_PORT'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+        'OPTIONS': {'charset': 'utf8mb4','init_command': "SET sql_mode='STRICT_TRANS_TABLES'"},
     }
 }
-
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-]
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Kolkata' 
@@ -124,25 +81,20 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ========= CORS =========
-
-CORS_ALLOW_ALL_ORIGINS = True
+# ========= CORS - FIXED =========
+CORS_ALLOW_ALL_ORIGINS = False  
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_METHODS = ["GET","POST","PUT","PATCH","DELETE","OPTIONS"]
-CORS_ALLOW_HEADERS = ["*"]
-
 CORS_ALLOWED_ORIGINS = [
     "https://zindastore.com",
     "https://www.zindastore.com",
     "http://localhost:5173", 
-    "http://localhost:3000",
     "http://127.0.0.1:5173",
-    "https://zindastore-frontend-web.vercel.app",
+    "https://zindastore.com",
+    "https://www.zindastore.com",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -150,20 +102,17 @@ CSRF_TRUSTED_ORIGINS = [
     "https://www.zindastore.com",
     "https://api.zindastore.com",
     "http://localhost:5173",
-    "http://localhost:3000",
     "http://127.0.0.1:5173",
-    "https://zindastore-frontend-web.vercel.app",
-    "https://zindastorebackendweb-production.up.railway.app",
-    "https://zindastore-backend-web-production.up.railway.app",
+    "https://zindastore.com",
+    "https://www.zindastore.com",
 ]
 
 # ========= APP CONFIGS =========
-DEFAULT_CURRENCY = 'INR'
 RAZORPAY_KEY_ID = env('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET = env('RAZORPAY_KEY_SECRET')
-RAZORPAY_WEBHOOK_SECRET = env('RAZORPAY_WEBHOOK_SECRET')
 JORA_BASE_URL = env('JORA_BASE_URL')
 JORA_API_KEY = env('JORA_API_KEY') 
+FRONTEND_URL = env('FRONTEND_URL')
 
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ('rest_framework.renderers.JSONRenderer',),
@@ -171,33 +120,5 @@ REST_FRAMEWORK = {
 }
 
 if not DEBUG:
-   SECURE_SSL_REDIRECT = False
    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
    USE_X_FORWARDED_HOST = True
-   SESSION_COOKIE_SECURE = True
-   CSRF_COOKIE_SECURE = True
-
-UNFOLD = {
-    'SITE_TITLE': 'Zinda Store Admin',
-    'SITE_HEADER': 'Zinda Store',
-    "SITE_LOGO": "/static/branding/logo.png",
-    "STYLES": ["/static/branding/admin-overrides.css",],
-    "SIDEBAR": {
-        "show_search": True,
-        "navigation": [
-            {"title": "Dashboard","items": [{"title": "Overview","icon": "space_dashboard","link": "/admin/",},],},
-            {"title": "Authentication & Authorization","collapsible": True,"items": [{"title": "Groups","icon": "group","link": "/admin/auth/group/",},{"title": "Users","icon": "person","link": "/admin/auth/user/",},],},
-            {"title": "Catalog","collapsible": True,"items": [{"title": "Brands","icon": "store","link": "/admin/catalog/brand/",},{"title": "Categories","icon": "category","link": "/admin/catalog/category/"},{"title": "Product images","icon": "photo_library","link": "/admin/catalog/productimage/"},{"title": "Product variants","icon": "widgets","link": "/admin/catalog/productvariant/"},{"title": "Products","icon": "inventory_2","link": "/admin/catalog/product/"},],},
-            {"title": "CMS","collapsible": True,"items": [{"title": "Banners","icon": "collections_bookmark","link": "/admin/cms/banner/"},{"title": "Pages","icon": "description","link": "/admin/cms/page/"},],},
-            {"title": "Inventory","collapsible": True,"items": [{"title": "Warehouses","icon": "warehouse","link": "/admin/inventory/warehouse/"},{"title": "Inventory items","icon": "inventory","link": "/admin/inventory/inventoryitem/"},{"title": "Stock movements","icon": "sync_alt","link": "/admin/inventory/stockmovement/"},],},
-            {"title": "Cart","collapsible": True,"items": [{"title": "Carts","icon": "shopping_cart","link": "/admin/cart/cart/"},],},
-            {"title": "Orders","collapsible": True,"items": [{"title": "Orders","icon": "receipt_long","link": "/admin/orders/order/"},{"title": "Invoices","icon": "request_quote","link": "/admin/orders/invoice/"},],},
-            {"title": "Payments","collapsible": True,"items": [{"title": "Payment intents","icon": "payments","link": "/admin/payments/paymentintent/"},{"title": "Refunds","icon": "undo","link": "/admin/payments/refund/"},],},
-            {"title": "Shipping","collapsible": True,"items": [{"title": "Shipping methods","icon": "local_shipping","link": "/admin/shipping/shippingmethod/"},{"title": "Shipments","icon": "move_up","link": "/admin/shipping/shipment/"},{"title": "Shipment items","icon": "inventory_2","link": "/admin/shipping/shipmentitem/"},],},
-            {"title": "Promotions","collapsible": True,"items": [{"title": "Coupons","icon": "loyalty","link": "/admin/promotions/coupon/"},],},
-            {"title": "Reviews","collapsible": True,"items": [{"title": "Reviews","icon": "reviews","link": "/admin/reviews/review/"},],},
-            {"title": "Support","collapsible": True,"items": [{"title": "Return requests","icon": "support_agent","link": "/admin/support/returnrequest/"},],},
-        ],
-    },
-    "LOGIN": {"LOGO": "/static/branding/logo.png",},
-}
