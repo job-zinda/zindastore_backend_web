@@ -1,6 +1,10 @@
 import logging
 from decimal import Decimal
 import razorpay
+from cashfree_pg.api_client import Cashfree as CashfreeClient
+from cashfree_pg.models.create_order_request import CreateOrderRequest
+from cashfree_pg.models.customer_details import CustomerDetails
+from cashfree_pg.models.order_meta import OrderMeta
 from django.conf import settings
 from django.db.models import F, Q, Prefetch
 from django.shortcuts import get_object_or_404
@@ -34,6 +38,7 @@ from .serializers import (
     CourseCheckoutRequestSerializer,
     ServiceCheckoutRequestSerializer,
     RazorpayVerifySerializer,
+    CashfreeVerifySerializer,
     ReviewSerializer,
     ReviewCreateSerializer,
 )
@@ -352,6 +357,7 @@ class CheckoutView(APIView):
         )
 
 class CourseCheckoutView(APIView):
+    """Course checkout using Cashfree Payment Gateway."""
     def post(self, request):
         data = CourseCheckoutRequestSerializer(data=request.data)
         data.is_valid(raise_exception=True)
@@ -421,9 +427,16 @@ class CourseCheckoutView(APIView):
             tax_rate_snapshot=Decimal("0.00"),
         )
 
+        # --- Cashfree Payment Gateway Integration ---
+        cf_app_id = getattr(settings, "CASHFREE_APP_ID", "")
+        cf_secret_key = getattr(settings, "CASHFREE_SECRET_KEY", "")
+        cf_environment = getattr(settings, "CASHFREE_ENVIRONMENT", "PRODUCTION")
+        payment_session_id = ""
+        cf_order_id = ""
+
         intent = PaymentIntent.objects.create(
             order=order,
-            provider=PaymentIntent.PROVIDER_RAZORPAY,
+            provider=PaymentIntent.PROVIDER_CASHFREE,
             client_secret="",
             amount=grand_total,
             currency=order.currency,
@@ -431,24 +444,57 @@ class CourseCheckoutView(APIView):
             payload={},
         )
 
-        rp_key_id = getattr(settings, "RAZORPAY_KEY_ID", "")
-        rp_key_secret = getattr(settings, "RAZORPAY_KEY_SECRET", "")
-        razorpay_order_id = ""
-        if rp_key_id and rp_key_secret and intent.amount > 0:
-            client = razorpay.Client(auth=(rp_key_id, rp_key_secret))
-            amount_paise = int(grand_total * 100)
-            rp_order = client.order.create(
-                {
-                    "amount": amount_paise,
-                    "currency": order.currency,
-                    "receipt": order.order_number,
-                    "payment_capture": 1,
-                    "notes": {"order_number": order.order_number, "customer_name": customer_name, "customer_phone": customer_phone},
+        if cf_app_id and cf_secret_key and intent.amount > 0:
+            try:
+                # Set Cashfree environment
+                x_env = CashfreeClient.PRODUCTION if cf_environment == "PRODUCTION" else CashfreeClient.SANDBOX
+                cashfree_instance = CashfreeClient(
+                    XEnvironment=x_env,
+                    XClientId=cf_app_id,
+                    XClientSecret=cf_secret_key,
+                )
+
+                # Prepare customer details
+                customer_details = CustomerDetails(
+                    customer_id=f"cust_{order.id}",
+                    customer_phone=customer_phone or "9999999999",
+                    customer_name=customer_name,
+                    customer_email=customer_email or None,
+                )
+
+                # Return URL after payment
+                frontend_url = getattr(settings, "FRONTEND_URL", "https://zindastore.com")
+                return_url = f"{frontend_url}/course/{course.slug}?order_id={{order_id}}&order_number={order.order_number}"
+
+                order_meta = OrderMeta(
+                    return_url=return_url,
+                )
+
+                create_order_request = CreateOrderRequest(
+                    order_id=order.order_number,
+                    order_amount=float(grand_total),
+                    order_currency=order.currency,
+                    customer_details=customer_details,
+                    order_meta=order_meta,
+                )
+
+                api_response = cashfree_instance.PGCreateOrder(create_order_request, None, None)
+                cf_order_data = api_response.data
+
+                payment_session_id = cf_order_data.payment_session_id or ""
+                cf_order_id = cf_order_data.cf_order_id if hasattr(cf_order_data, 'cf_order_id') else ""
+
+                intent.client_secret = payment_session_id
+                intent.payload = {
+                    "cashfree_order_id": str(cf_order_id),
+                    "payment_session_id": payment_session_id,
+                    "order_number": order.order_number,
                 }
-            )
-            razorpay_order_id = rp_order.get("id", "")
-            intent.payload = {"razorpay_order": rp_order}
-            intent.save(update_fields=["payload"])
+                intent.save(update_fields=["client_secret", "payload"])
+
+            except Exception as e:
+                logging.error("Cashfree order creation failed: %s", str(e))
+                return Response({"detail": f"Cashfree Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if coupon:
             Coupon.objects.filter(pk=coupon.pk).update(usage_count=F("usage_count") + 1)
@@ -464,15 +510,15 @@ class CourseCheckoutView(APIView):
                     "grand_total": str(grand_total),
                 },
                 "payment_intent": {
-                    "provider": intent.provider,
+                    "provider": "cashfree",
                     "amount": str(intent.amount),
                     "currency": intent.currency,
                     "status": intent.status,
-                    "razorpay": {
-                        "order_id": razorpay_order_id,
-                        "key_id": rp_key_id,
-                        "amount": int(grand_total * 100),
-                        "currency": order.currency,
+                    "cashfree": {
+                        "payment_session_id": payment_session_id,
+                        "order_id": order.order_number,
+                        "cf_order_id": str(cf_order_id),
+                        "environment": cf_environment.lower(),
                     },
                 },
             },
@@ -723,6 +769,121 @@ class RazorpayVerifyView(APIView):
         return Response({"detail": "Payment verified", "order_number": order_number})
 
 
+class CashfreeVerifyView(APIView):
+    """Verify Cashfree payment by fetching order status from Cashfree API."""
+    def post(self, request):
+        serializer = CashfreeVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        order_number = serializer.validated_data["order_number"]
+
+        order = get_object_or_404(Order, order_number=order_number)
+        intent = order.payment_intents.filter(provider=PaymentIntent.PROVIDER_CASHFREE).last()
+        if not intent:
+            return Response({"detail": "Cashfree payment intent not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Already marked as paid — skip re-verification
+        if order.payment_status == Order.PAYMENT_PAID:
+            return Response({"detail": "Payment already verified", "order_number": order_number})
+
+        cf_app_id = getattr(settings, "CASHFREE_APP_ID", "")
+        cf_secret_key = getattr(settings, "CASHFREE_SECRET_KEY", "")
+        cf_environment = getattr(settings, "CASHFREE_ENVIRONMENT", "PRODUCTION")
+
+        if not cf_app_id or not cf_secret_key:
+            return Response({"detail": "Cashfree not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        try:
+            x_env = CashfreeClient.PRODUCTION if cf_environment == "PRODUCTION" else CashfreeClient.SANDBOX
+            cashfree_instance = CashfreeClient(
+                XEnvironment=x_env,
+                XClientId=cf_app_id,
+                XClientSecret=cf_secret_key,
+            )
+
+            # Fetch order status from Cashfree
+            api_response = cashfree_instance.PGFetchOrder(order_number, None, None)
+            cf_order = api_response.data
+            order_status = cf_order.order_status  # PAID, ACTIVE, EXPIRED
+
+        except Exception as e:
+            logging.error("Cashfree verify error: %s", str(e))
+            return Response({"detail": f"Cashfree verification error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        if order_status == "PAID":
+            # Record the transaction
+            cf_order_id = str(cf_order.cf_order_id) if hasattr(cf_order, 'cf_order_id') else ""
+            PaymentTransaction.objects.create(
+                intent=intent,
+                provider_txn_id=cf_order_id,
+                event=PaymentTransaction.EVENT_CAPTURED,
+                amount=intent.amount,
+                status="captured",
+                payload={"cashfree_order_status": order_status, "cf_order_id": cf_order_id},
+            )
+
+            intent.status = PaymentIntent.STATUS_SUCCEEDED
+            intent.save(update_fields=["status"])
+            order.payment_status = Order.PAYMENT_PAID
+            order.paid_at = timezone.now()
+            order.status = Order.STATUS_CONFIRMED
+            order.save(update_fields=["payment_status", "paid_at", "status"])
+
+            # Referral commission logic (same as RazorpayVerifyView)
+            try:
+                if getattr(order, "referral_code", "") and not getattr(order, "referral_credited", False):
+                    commission_total = Decimal("0.00")
+                    purchaser_name = order.customer_name
+                    for it in order.items.all():
+                        sku = (it.sku_snapshot or "").upper()
+                        try:
+                            if sku.startswith("COURSE-"):
+                                slug = it.sku_snapshot.split("COURSE-", 1)[1]
+                                c = Course.objects.filter(slug=slug).first()
+                                if c and c.referral_commission is not None:
+                                    commission_total += Decimal(c.referral_commission)
+                        except Exception:
+                            pass
+
+                    if commission_total > 0:
+                        import json as _json
+                        from urllib import request as _urlreq
+                        from urllib.error import URLError as _URLError, HTTPError as _HTTPError
+                        jora_base = getattr(settings, "JORA_BASE_URL", "http://localhost:4001/api/v1")
+                        if not (jora_base.startswith("http://") or jora_base.startswith("https://")):
+                            jora_base = f"https://{jora_base}"
+                        url = jora_base.rstrip("/") + "/wallet/creditReferralByCode"
+                        payload = _json.dumps({
+                            "referralCode": order.referral_code,
+                            "purchaserName": purchaser_name,
+                            "amount": float(commission_total),
+                        }).encode("utf-8")
+                        req = _urlreq.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+                        try:
+                            resp = _urlreq.urlopen(req, timeout=10)
+                            logging.info("Referral credit request succeeded: %s %s", resp.getcode(), url)
+                            order.referral_credited = True
+                            order.save(update_fields=["referral_credited"])
+                        except _HTTPError as e:
+                            logging.warning("Referral credit HTTP error: %s %s", e.code, url)
+                        except _URLError as e:
+                            logging.warning("Referral credit request failed: %s %s", getattr(e, 'reason', e), url)
+            except Exception:
+                pass
+
+            return Response({"detail": "Payment verified", "order_number": order_number})
+
+        elif order_status == "ACTIVE":
+            return Response({"detail": "Payment is still pending", "order_number": order_number}, status=status.HTTP_202_ACCEPTED)
+        else:
+            # EXPIRED or other failed states
+            intent.status = PaymentIntent.STATUS_CANCELED
+            intent.save(update_fields=["status"])
+            order.payment_status = Order.PAYMENT_FAILED
+            order.save(update_fields=["payment_status"])
+            return Response({"detail": f"Payment failed. Order status: {order_status}"}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class OrdersList(APIView):
     def get(self, request):
         phone = request.query_params.get("phone", "").strip()
@@ -762,13 +923,23 @@ class OrdersList(APIView):
 
 
 class ProductReviews(APIView):
+    def get_product(self, slug: str):
+        product = Product.objects.filter(slug=slug, is_active=True).first()
+        if not product and slug.isdigit():
+            product = Product.objects.filter(id=int(slug), is_active=True).first()
+        return product
+
     def get(self, request, slug: str):
-        product = get_object_or_404(Product, slug=slug, is_active=True)
+        product = self.get_product(slug)
+        if not product:
+            return Response({"detail": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
         qs = product.reviews.order_by("-created_at")
         return Response(ReviewSerializer(qs, many=True).data)
 
     def post(self, request, slug: str):
-        product = get_object_or_404(Product, slug=slug, is_active=True)
+        product = self.get_product(slug)
+        if not product:
+            return Response({"detail": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = ReviewCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         r = Review.objects.create(
@@ -778,6 +949,68 @@ class ProductReviews(APIView):
             body=serializer.validated_data.get("body", ""),
             name_or_email=serializer.validated_data.get("name_or_email", ""),
             is_approved=True, 
+        )
+        return Response(ReviewSerializer(r).data, status=status.HTTP_201_CREATED)
+
+
+class CourseReviews(APIView):
+    def get_course(self, slug: str):
+        course = Course.objects.filter(slug=slug, is_active=True).first()
+        if not course and slug.isdigit():
+            course = Course.objects.filter(id=int(slug), is_active=True).first()
+        return course
+
+    def get(self, request, slug: str):
+        course = self.get_course(slug)
+        if not course:
+            return Response({"detail": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        qs = course.reviews.order_by("-created_at")
+        return Response(ReviewSerializer(qs, many=True).data)
+
+    def post(self, request, slug: str):
+        course = self.get_course(slug)
+        if not course:
+            return Response({"detail": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = ReviewCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        r = Review.objects.create(
+            course=course,
+            rating=serializer.validated_data["rating"],
+            title=serializer.validated_data.get("title", ""),
+            body=serializer.validated_data.get("body", ""),
+            name_or_email=serializer.validated_data.get("name_or_email", ""),
+            is_approved=True,
+        )
+        return Response(ReviewSerializer(r).data, status=status.HTTP_201_CREATED)
+
+
+class ServiceReviews(APIView):
+    def get_service(self, slug: str):
+        service = Service.objects.filter(slug=slug, is_active=True).first()
+        if not service and slug.isdigit():
+            service = Service.objects.filter(id=int(slug), is_active=True).first()
+        return service
+
+    def get(self, request, slug: str):
+        service = self.get_service(slug)
+        if not service:
+            return Response({"detail": "Service not found"}, status=status.HTTP_404_NOT_FOUND)
+        qs = service.reviews.order_by("-created_at")
+        return Response(ReviewSerializer(qs, many=True).data)
+
+    def post(self, request, slug: str):
+        service = self.get_service(slug)
+        if not service:
+            return Response({"detail": "Service not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = ReviewCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        r = Review.objects.create(
+            service=service,
+            rating=serializer.validated_data["rating"],
+            title=serializer.validated_data.get("title", ""),
+            body=serializer.validated_data.get("body", ""),
+            name_or_email=serializer.validated_data.get("name_or_email", ""),
+            is_approved=True,
         )
         return Response(ReviewSerializer(r).data, status=status.HTTP_201_CREATED)
     

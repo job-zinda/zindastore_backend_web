@@ -14,9 +14,11 @@ class TimeStampedModel(models.Model):
 class PaymentIntent(TimeStampedModel):
     PROVIDER_RAZORPAY = "razorpay"
     PROVIDER_STRIPE = "stripe"
+    PROVIDER_CASHFREE = "cashfree"
     PROVIDER_CHOICES = [
         (PROVIDER_RAZORPAY, "Razorpay"),
         (PROVIDER_STRIPE, "Stripe"),
+        (PROVIDER_CASHFREE, "Cashfree"),
     ]
 
     STATUS_REQUIRES_ACTION = "requires_action"

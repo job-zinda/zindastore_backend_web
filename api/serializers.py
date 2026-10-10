@@ -239,6 +239,10 @@ class RazorpayVerifySerializer(serializers.Serializer):
     razorpay_signature = serializers.CharField()
 
 
+class CashfreeVerifySerializer(serializers.Serializer):
+    order_number = serializers.CharField()
+
+
 class CourseCheckoutRequestSerializer(serializers.Serializer):
     course_slug = serializers.CharField()
     customer_name = serializers.CharField(max_length=140)

@@ -13,11 +13,13 @@ urlpatterns = [
     path("courses/", views.CourseList.as_view(), name="courses-list"),
     path("courses/checkout/", views.CourseCheckoutView.as_view(), name="courses-checkout"),
     path("courses/<slug:slug>/", views.CourseDetail.as_view(), name="course-detail"),
+    path("courses/<slug:slug>/reviews/", views.CourseReviews.as_view(), name="courses-reviews"),
 
     # Services
     path("services/", views.ServiceList.as_view(), name="services-list"),
     path("services/checkout/", views.ServiceCheckoutView.as_view(), name="services-checkout"),
     path("services/<slug:slug>/", views.ServiceDetail.as_view(), name="service-detail"),
+    path("services/<slug:slug>/reviews/", views.ServiceReviews.as_view(), name="services-reviews"),
 
     # Shipping
     path("shipping/methods/", views.ShippingMethodList.as_view(), name="shipping-methods"),
@@ -33,6 +35,7 @@ urlpatterns = [
     path("checkout/", views.CheckoutView.as_view(), name="checkout"),
     #path("checkout/direct/", views.DirectCheckoutView.as_view(), name="checkout-direct"), 
     path("payment/razorpay/verify/", views.RazorpayVerifyView.as_view(), name="razorpay-verify"),
+    path("payment/cashfree/verify/", views.CashfreeVerifyView.as_view(), name="cashfree-verify"),
     
     # Orders
     path("orders/", views.OrdersList.as_view(), name="orders-list"),

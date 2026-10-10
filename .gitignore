@@ -6,4 +6,6 @@ db.sqlite3
 media/
 staticfiles/
 .env
-RUN_LOCALLY.md
+RUN_LOCALLY.md
+run.bat
+run.ps1

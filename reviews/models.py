@@ -1,5 +1,5 @@
 from django.db import models
-from catalog.models import Product
+from catalog.models import Product, Course, Service
 
 
 class TimeStampedModel(models.Model):
@@ -11,7 +11,9 @@ class TimeStampedModel(models.Model):
 
 
 class Review(TimeStampedModel):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews", null=True, blank=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews", null=True, blank=True)
+    service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name="reviews", null=True, blank=True)
     rating = models.PositiveSmallIntegerField()  # 1-5
     title = models.CharField(max_length=140, blank=True)
     body = models.TextField(blank=True)
@@ -19,6 +21,6 @@ class Review(TimeStampedModel):
     is_approved = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.product.title} - {self.rating}★"
-
-# Create your models here.
+        target = self.product or self.course or self.service or "Item"
+        title = getattr(target, "title", str(target))
+        return f"{title} - {self.rating}★"
