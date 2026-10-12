@@ -67,8 +67,10 @@ class BannerLinkBuilderForm(forms.ModelForm):
         return cleaned
 
 
+from unfold.admin import ModelAdmin
+
 @admin.register(Banner)
-class BannerAdmin(admin.ModelAdmin):
+class BannerAdmin(ModelAdmin):
     form = BannerLinkBuilderForm
     list_display = ("title", "placement", "is_active", "sort_order", "updated_at", "link_path", "link_url")
     list_filter = ("placement", "is_active")
@@ -109,7 +111,7 @@ class BannerAdmin(admin.ModelAdmin):
 
 
 @admin.register(Page)
-class PageAdmin(admin.ModelAdmin):
+class PageAdmin(ModelAdmin):
     list_display = ("slug", "title", "is_published", "updated_at")
     list_filter = ("is_published",)
     search_fields = ("slug", "title")

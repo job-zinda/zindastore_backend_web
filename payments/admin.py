@@ -1,15 +1,16 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 from .models import PaymentIntent, PaymentTransaction, Refund
 
 
-class PaymentTransactionInline(admin.TabularInline):
+class PaymentTransactionInline(TabularInline):
     model = PaymentTransaction
     extra = 0
     readonly_fields = ("provider_txn_id", "event", "amount", "status", "occurred_at")
 
 
 @admin.register(PaymentIntent)
-class PaymentIntentAdmin(admin.ModelAdmin):
+class PaymentIntentAdmin(ModelAdmin):
     list_display = ("order", "provider", "amount", "currency", "status", "created_at")
     list_filter = ("provider", "status", "currency")
     search_fields = ("order__order_number",)
@@ -17,7 +18,7 @@ class PaymentIntentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Refund)
-class RefundAdmin(admin.ModelAdmin):
+class RefundAdmin(ModelAdmin):
     list_display = ("transaction", "amount", "status", "created_at")
     list_filter = ("status",)
 
